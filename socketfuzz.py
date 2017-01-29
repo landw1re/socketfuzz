@@ -147,7 +147,7 @@ class FuzzLib(object):
 	def test_return_address(b_location, return_address):
 		string_buffer = "A" * b_location + return_address + "C" * 400 
 
-		return str(string_buffer)
+		return str(string_buffer).decode('string-escape')
 
 	@staticmethod
 	def generate_exploit_string(b_location, return_address, shellcode):
