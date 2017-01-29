@@ -43,7 +43,7 @@ class FuzzBucket(object):
 	def fuzz_it(self, evil_buffer):
 		if self.buffer_to_fuzz == 1:
 			self.pop3_password_buffer(evil_buffer)
-		elif self.buffer_to_fuzz = 2:
+		elif self.buffer_to_fuzz == 2:
 			self.test_vulnserv_buffer(evil_buffer)
 
 	def pop3_password_buffer(self, evil_buffer):
