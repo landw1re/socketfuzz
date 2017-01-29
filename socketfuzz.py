@@ -87,7 +87,7 @@ class FuzzLib(object):
 					str(eip_value), str(b_size)], stdout=subprocess.PIPE)
 		std_output = response.communicate()
 		
-		return str(std_output)
+		return str(std_output[0].strip())
 
 	@staticmethod
 	def locate_bad_chars(b_location, **kwargs):
@@ -220,11 +220,11 @@ def main():
 
 			'''))
 
-	parser.add_argument('-i', type=check_ip, dest="ip_address", required=True, 
+	parser.add_argument('-i', type=check_ip, dest="ip_address", 
 			metavar="<ip address>", help="valid IPv4 IP address")
-	parser.add_argument('-p', type=check_port, dest="tcp_port", required=True, 
+	parser.add_argument('-p', type=check_port, dest="tcp_port",
 			metavar="<port>", help="valid TCP port (1 - 65535)")
-	parser.add_argument('-f', type=int, dest="buffer_to_fuzz", required=True, 
+	parser.add_argument('-f', type=int, dest="buffer_to_fuzz",
 			metavar="<buffer to fuzz>", help="input integer of buffer to fuzz. " + list_fuzzers())
 	parser.add_argument('--growing-buffer', dest="growing_buffer", action='store_true',
 			help='''create a growing buffer to send to the service using -s, -c & -n arguments
@@ -278,7 +278,7 @@ def main():
 			of reverse shell shellcode.''')
 
 	args = parser.parse_args()
-
+	fuzz_l = FuzzLib()
 	# check all of the values from the arguments with 2 dashes
 	# if there are >1 arguments raise an exception and tell the user that those 2
 	# arguments can not be used together
@@ -299,10 +299,22 @@ def main():
 		print "The following arguments can not be used at the same time:"
 		for option in option_picker:
 			print option
+	elif args.offset_value:
+		if args.eip_register_val == 0:
+			char_invalid_msg = '''provide the value of the EIP register after running the --rand argument'''
+			raise argparse.ArgumentTypeError(char_invalid_msg)
+			return False
+		else:
+			result = fuzz_l.find_offset(args.buffer_size, args.eip_register_val)
+			print result
+			
 	else:
-		#print args
+		if args.ip_address == None or args.tcp_port == None or args.buffer_to_fuzz == None:
+			char_invalid_msg = '''-i, -p and -f are mandatory arguments.'''
+			raise argparse.ArgumentTypeError(char_invalid_msg)
+			return False
+
 		conn = Connection(args.ip_address, args.tcp_port)
-		fuzz_l = FuzzLib()
 
 		if args.growing_buffer:
 			result = fuzz_l.create_growing_buffer(args.buffer_size, args.buffer_char, args.buffer_increment)
@@ -330,15 +342,6 @@ def main():
 				else:
 					result = fuzz_l.locate_bad_chars(args.single_buff_location, bad_chars=args.chars_to_remove)
 
-				send_buffer(conn, args.buffer_to_fuzz, result)
-		
-		elif args.offset_value:
-			if args.eip_register_val == 0:
-				char_invalid_msg = '''provide the value of the EIP register after running the --rand argument'''
-				raise argparse.ArgumentTypeError(char_invalid_msg)
-				return False
-			else:
-				result = fuzz_l.find_offset(args.buffer_size, args.eip_register_val)
 				send_buffer(conn, args.buffer_to_fuzz, result)
 
 		elif args.shellcode_space:
