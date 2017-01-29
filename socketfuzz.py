@@ -65,7 +65,7 @@ class FuzzLib(object):
 			str_buffer.append(b_char*counter)
 			counter = counter + b_increment
 
-		return str(str_buffer)
+		return str_buffer
 
 	@staticmethod
 	def create_single_buffer(b_size, b_char):
@@ -308,7 +308,8 @@ def main():
 			result = fuzz_l.create_growing_buffer(args.buffer_size, args.buffer_char, args.buffer_increment)
 
 			for string in result:
-				send_buffer(conn, args.buffer_to_fuzz, string)
+				print string
+				#send_buffer(conn, args.buffer_to_fuzz, string)
 
 		elif args.single_buffer:
 			result = fuzz_l.create_single_buffer(args.buffer_size, args.buffer_char)
