@@ -138,7 +138,7 @@ class FuzzLib(object):
 		return str(string_buffer)
 
 	@staticmethod
-	def locate_space_for_shellcode(b_size, b_location):
+	def locate_space_4_shellcode(b_size, b_location):
 		string_buffer = "A" * b_location + "B" * 4 + "C" * (b_size - b_location - 4) 
 
 		return str(string_buffer)
@@ -259,7 +259,7 @@ def main():
 	parser.add_argument('--find-offset', dest='offset_value', action='store_true',
 			help='''find the offset of the value displayed in the EIP register after using the
 			--rand argument. MUST use the -s argument and -e argument''')
-	parser.add_argument('--locate-shellcode-space', dest='shellcode_space', action='store_true',
+	parser.add_argument('--locate-space-4-shellcode', dest='shellcode_space', action='store_true',
 			help='''locate space for shellcode in the buffer being overrun. MUST use the -s
 			argument and -l argument''')
 	parser.add_argument('--find-return-addr', dest='find_return_address', action='store_true',
@@ -350,7 +350,7 @@ def main():
 				raise argparse.ArgumentTypeError(char_invalid_msg)
 				return False
 			else:
-				result = fuzz_l.locate_space_for_shellcode(args.buffer_size, args.single_buff_location)
+				result = fuzz_l.locate_space_4_shellcode(args.buffer_size, args.single_buff_location)
 				send_buffer(conn, args.buffer_to_fuzz, result)
 
 		elif args.find_return_address:
