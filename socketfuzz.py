@@ -308,8 +308,7 @@ def main():
 			result = fuzz_l.create_growing_buffer(args.buffer_size, args.buffer_char, args.buffer_increment)
 
 			for string in result:
-				print string
-				#send_buffer(conn, args.buffer_to_fuzz, string)
+				send_buffer(conn, args.buffer_to_fuzz, string)
 
 		elif args.single_buffer:
 			result = fuzz_l.create_single_buffer(args.buffer_size, args.buffer_char)
