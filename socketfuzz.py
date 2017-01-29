@@ -79,7 +79,7 @@ class FuzzLib(object):
 					str(b_size)], stdout=subprocess.PIPE)
 		std_output = response.communicate()
 		
-		return str(std_output[0])
+		return str(std_output[0].strip())
 
 	@staticmethod
 	def find_offset(b_size, eip_value):
