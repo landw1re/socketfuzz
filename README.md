@@ -1,12 +1,12 @@
 # socketfuzz
 Simple socket fuzzer
 ```bash
-usage: socketfuzz.py [-h] -i <ip address> -p <port> -f <buffer to fuzz>
+usage: socketfuzz.py [-h] [-i <ip address>] [-p <port>] [-f <buffer to fuzz>]
                      [--growing-buffer] [-s <size>] [-c <char>]
                      [-n <increment>] [--single] [--rand] [--check-badchars]
                      [-l <buffer location>] [-r <chars to remove>]
                      [-e <EIP value>] [--find-offset]
-                     [--locate-shellcode-space] [--find-return-addr]
+                     [--locate-space-4-shellcode] [--find-return-addr]
                      [-a <return address>] [--send-exploit] [-x <shellcode>]
 
 Simple socket fuzzer
@@ -47,7 +47,7 @@ optional arguments:
   --find-offset         find the offset of the value displayed in the EIP
                         register after using the --rand argument. MUST use the
                         -s argument and -e argument
-  --locate-shellcode-space
+  --locate-space-4-shellcode
                         locate space for shellcode in the buffer being
                         overrun. MUST use the -s argument and -l argument
   --find-return-addr    find a return address to divert execution to our
