@@ -1,0 +1,2 @@
+# socketfuzz
+Simple socket fuzzer
