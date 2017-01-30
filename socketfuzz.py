@@ -276,25 +276,25 @@ def main():
 			help='''generate a single random buffer using the pattern_create utility 
         	from the Metasploit framework - use the -s argument to specify the size of the buffer
         	to create - the default size is 2000.''')
-	parser.add_argument('--check-badchars', dest='check_badchars', action='store_true',
-			help='''send a list of ALL possible characters in hex (x00 to xff) to check 
-			what characters are bad and let us know what characters to not include in our buffer, 
-			return address or shell code. MUST use the -l argument''')
+	parser.add_argument('--find-offset', dest='offset_value', action='store_true',
+			help='''find the offset of the value displayed in the EIP register after using the
+			--rand argument. MUST use the -s argument and -e argument''')
+	parser.add_argument('-e', dest='eip_register_val', default=0, metavar='<EIP value>',
+			help='''value of the EIP register after using the --rand argument''')
+	parser.add_argument('--locate-space-4-shellcode', dest='shellcode_space', action='store_true',
+			help='''locate space for shellcode in the buffer being overrun. MUST use the -s
+			argument and -l argument''')
 	parser.add_argument('-l', dest='single_buff_location', type=int, default=0, metavar='<buffer location>',
 			help='''location of the buffer offset that overwrote the EIP register after using the
 			--rand command to send a buffer. Use the --find-offset argument with the -s and the
 			-e argument.''')
+	parser.add_argument('--check-badchars', dest='check_badchars', action='store_true',
+			help='''send a list of ALL possible characters in hex (x00 to xff) to check 
+			what characters are bad and let us know what characters to not include in our buffer, 
+			return address or shell code. MUST use the -l argument''')
 	parser.add_argument('-r', dest='chars_to_remove', default='None', type=str, metavar='<chars to remove>',
 			help='''string of hex chars to remove from the hex list. The string of chars MUST
 			be in hex format and be separated by a comma (e.g. "\\x01,\\x02,\\x03").''')
-	parser.add_argument('-e', dest='eip_register_val', default=0, metavar='<EIP value>',
-			help='''value of the EIP register after using the --rand argument''')
-	parser.add_argument('--find-offset', dest='offset_value', action='store_true',
-			help='''find the offset of the value displayed in the EIP register after using the
-			--rand argument. MUST use the -s argument and -e argument''')
-	parser.add_argument('--locate-space-4-shellcode', dest='shellcode_space', action='store_true',
-			help='''locate space for shellcode in the buffer being overrun. MUST use the -s
-			argument and -l argument''')
 	parser.add_argument('--find-return-addr', dest='find_return_address', action='store_true',
 			help='''find a return address to divert execution to our shellcode. MUST use
 			the -l argument and the -a argument''')
