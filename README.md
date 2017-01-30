@@ -1,5 +1,6 @@
 # socketfuzz
 Simple socket fuzzer
+```bash
 usage: socketfuzz.py [-h] -i <ip address> -p <port> -f <buffer to fuzz>
                      [--growing-buffer] [-s <size>] [-c <char>]
                      [-n <increment>] [--single] [--rand] [--check-badchars]
@@ -65,3 +66,4 @@ optional arguments:
 Examples of Use:
 --------------------------------
 Work in progress - examples will be added soon
+```
