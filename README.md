@@ -7,7 +7,8 @@ usage: socketfuzz.py [-h] [-i <ip address>] [-p <port>] [-f <buffer to fuzz>]
                      [-l <buffer location>] [-r <chars to remove>]
                      [-e <EIP value>] [--find-offset]
                      [--locate-space-4-shellcode] [--find-return-addr]
-                     [-a <return address>] [--send-exploit] [-x <shellcode>]
+                     [-a <return address>] [--send-exploit]
+                     [-x <shellcode file>]
 
 Simple socket fuzzer
 
@@ -51,8 +52,8 @@ optional arguments:
                         locate space for shellcode in the buffer being
                         overrun. MUST use the -s argument and -l argument
   --find-return-addr    find a return address to divert execution to our
-                        shellcode. MUST use the -s argument, -l argument and
-                        the -a argument
+                        shellcode. MUST use the -l argument and the -a
+                        argument
   -a <return address>   return address (in hex format e.g "\x8f\x35\x4a\x5f")
                         to use to divert execution flow back to our shellcode.
                         As an example, the Immunity debugger script mona.py
@@ -60,8 +61,9 @@ optional arguments:
                         address to use.
   --send-exploit        test exploit and send shellcode. MUST use -l argument,
                         -a argument and -x argument.
-  -x <shellcode>        shellcode string to use. Use a tool like msfvenom to
-                        automate the creation of reverse shell shellcode.
+  -x <shellcode file>   file containing shellcode string to use. Use a tool
+                        like msfvenom to automate the creation of reverse
+                        shell shellcode.
 
 Examples of Use:
 --------------------------------
