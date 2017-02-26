@@ -351,8 +351,8 @@ def main():
 	parser.add_argument('--custom-exploit-buffer', dest='custom_exploit_buffer', type=check_file_exists, 
 			metavar='<custom buffer file>', help='''file containing a custom exploit buffer string. This 
 			string should include all shellcode, stager code, return address & any padding in hexidecimal 
-			format. The padding characters can use regular ascii characters. This option is only used 
-			with --send-exploit.''')
+			format in the proper order that you'd like everything execute. The padding characters can use 
+			regular ascii characters. This option is only used with --send-exploit.''')
 
 	args = parser.parse_args()
 	fuzz_l = FuzzLib()
